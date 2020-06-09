@@ -23,22 +23,93 @@ router.get("/", authMiddleware, async (req, res) => {
 // @route       POST api/contacts
 // @desc        Creates new contact
 // @access      Private
-router.post("/", (req, res) => {
-  res.send("Creates new contact");
-});
+router.post(
+  "/",
+  [authMiddleware, [check("name", "Name is required").not().isEmpty()]],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { name, email, phone, type } = req.body;
+
+    try {
+      const newContact = new Contact({
+        name,
+        email,
+        phone,
+        type,
+        user: req.user.id,
+      });
+
+      const contact = await newContact.save();
+      res.json(contact);
+    } catch (error) {
+      console.error(error.message);
+      res.status(500).json({ msg: "Server Error" });
+    }
+  }
+);
 
 // @route       PUT api/contacts/:id
 // @desc        Update contact
 // @access      Private
-router.put("/:id", (req, res) => {
-  res.send(`Update contact`);
+router.put("/:id", authMiddleware, async (req, res) => {
+  const { name, email, phone, type } = req.body;
+
+  const contactFields = {};
+  if (name) contactFields.name = name;
+  if (email) contactFields.email = email;
+  if (phone) contactFields.phone = phone;
+  if (type) contactFields.type = type;
+
+  try {
+    let contact = await Contact.findById(req.params.id);
+    if (!contact) {
+      return res.status(404).json({ msg: "Contact not found" });
+    }
+
+    if (contact.user.toString() !== req.user.id) {
+      return res.status(401).json({ msg: "Access denied" });
+    }
+
+    contact = await Contact.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: contactFields,
+      },
+      { new: true, useFindAndModify: false }
+    );
+
+    res.json(contact);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ msg: "Server Error" });
+  }
 });
 
 // @route       DELETE api/contacts/:id
 // @desc        Delete contact
 // @access      Private
-router.put("/:id", (req, res) => {
-  res.send(`Delete contact`);
+router.delete("/:id", authMiddleware, async (req, res) => {
+  try {
+    let contact = await Contact.findById(req.params.id);
+    if (!contact) {
+      return res.status(404).json({ msg: "Contact not found" });
+    }
+
+    if (contact.user.toString() !== req.user.id) {
+      return res.status(401).json({ msg: "Access denied" });
+    }
+
+    await Contact.findByIdAndRemove(req.params.id, { useFindAndModify: false });
+
+    res.json({ msg: "Contact removed" });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ msg: "Server Error" });
+  }
 });
 
 module.exports = router;
