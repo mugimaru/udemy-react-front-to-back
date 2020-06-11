@@ -9,6 +9,28 @@ import {
   CLEAR_ERRORS,
 } from "../types";
 
+const onAuthFail = (state, errorMsg) => {
+  localStorage.removeItem("token");
+  return {
+    ...state,
+    token: null,
+    loading: false,
+    isAuthenticated: false,
+    user: null,
+    error: errorMsg,
+  };
+};
+
+const onAuthSuccess = (state, token) => {
+  localStorage.setItem("token", token);
+  return {
+    ...state,
+    token: token,
+    isAuthenticated: true,
+    loading: false,
+  };
+};
+
 export default (state, action) => {
   switch (action.type) {
     case USER_LOADED:
@@ -18,38 +40,27 @@ export default (state, action) => {
         loading: false,
         user: action.payload,
       };
+
     case REGISTER_SUCCESS:
-      localStorage.setItem("token", action.payload.token);
-      return {
-        ...state,
-        token: action.payload.token,
-        isAuthenticated: true,
-        loading: false,
-      };
+      return onAuthSuccess(state, action.payload.token);
+
+    case LOGIN_SUCCESS:
+      return onAuthSuccess(state, action.payload.token);
 
     case REGISTER_FAIL:
-      localStorage.removeItem("token");
-      return {
-        ...state,
-        token: null,
-        loading: false,
-        isAuthenticated: false,
-        user: null,
-        error: action.payload,
-      };
+      return onAuthFail(state, action.payload);
+
+    case LOGIN_FAIL:
+      return onAuthFail(state, action.payload);
 
     case AUTH_ERROR:
-      localStorage.removeItem("token");
-      return {
-        ...state,
-        token: null,
-        loading: false,
-        isAuthenticated: false,
-        user: null,
-        error: action.payload,
-      };
+      return onAuthFail(state, action.payload);
+
     case CLEAR_ERRORS:
       return { ...state, error: null };
+
+    case LOGOUT:
+      return onAuthFail(state, null);
 
     default:
       return state;
