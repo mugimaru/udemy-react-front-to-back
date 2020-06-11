@@ -5,7 +5,7 @@ import AuthContext from "../../context/auth/authContext";
 const Register = (props) => {
   const alertContext = useContext(AlertContext);
   const authContext = useContext(AuthContext);
-  const { isAuthenticated, error, clearErrors } = authContext;
+  const { isAuthenticated, error, clearErrors, registerUser } = authContext;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -37,7 +37,7 @@ const Register = (props) => {
     if (password !== password_confirmation) {
       alertContext.setAlert("Passwords do not match", "danger");
     } else {
-      authContext.registerUser({
+      registerUser({
         name,
         email,
         password,
